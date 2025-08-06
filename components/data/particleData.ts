@@ -1,33 +1,35 @@
-// Import all book cover images
-import imgFrame1881 from "figma:asset/6f42800af64936ab5b8058041904925772dc704b.png";
-import imgFrame1885 from "figma:asset/64aa88c03b9d5ec7ff2e0334a056d2be19b208d7.png";
-import imgFrame1880 from "figma:asset/4d7bf1fbc6f54bdc4b051421491ed0e03b0a2a94.png";
-import imgFrame1882 from "figma:asset/8964f52a0fec36c81fe3640bcc0bdd1f7dea2247.png";
-import imgFrame1890 from "figma:asset/aec4275e5b5c00cb5b59ab8dfe042309cb1c4d66.png";
-import imgFrame1887 from "figma:asset/6aa8a5d4e91a079d2819f7b18748f79d3ba31c94.png";
-import imgFrame1883 from "figma:asset/334fff091384b525897e13e60174c52f56b91ef6.png";
-import imgHaightGiffBook1 from "figma:asset/ee265c6a15aca55d39e444a3a19bd5507e6fb84e.png";
-import imgHaight1 from "figma:asset/6e3179c7b9ccdbab06071b5ec6be11ec9bd6d670.png";
-import imgHaightGiffBook2 from "figma:asset/f57cc2f027c5c5d7065c266ddc34104e6b4664cd.png";
+// Use placeholder images for book covers
+const bookPlaceholder = "/images/book-placeholder.svg";
 
-// Import additional images from Frame85 to expand variety
-import imgImage from "figma:asset/862eca923631936d17576f17f915ed7a05f8c57a.png";
-import imgImage1 from "figma:asset/622282c6f614a5385a99830c8afcf4df84df513c.png";
-import imgImage2 from "figma:asset/67c7020ca57a9a4c2369f8bd32dd0723ca7618b9.png";
-import imgImage3 from "figma:asset/256751d675c730591991499b0178a200080faadf.png";
-import imgImage4 from "figma:asset/d8821978aa186b9bbd37b24c1523a163bb7a781c.png";
-import imgImage5 from "figma:asset/395e71a2dd3766f1adb22459771ac97b67011129.png";
-import imgImage6 from "figma:asset/9524de35968e8eabcbb4eccfd5cd0403a23d4dee.png";
-import imgImage7 from "figma:asset/864600883ad143463351ab3ca236da63c5dcebd5.png";
-import imgImage8 from "figma:asset/6453489c97f79b65c7ef27464d54b4dcb87d3637.png";
-import imgImage9 from "figma:asset/ac972b5e0abebc5588f56358caeec007c810ee07.png";
-import imgImage10 from "figma:asset/8c4fd20d84538fc654fc0417ce699492e77293d2.png";
-import imgImage11 from "figma:asset/7de1e430011edcb88de0ebc860b6e5e046951dd1.png";
-import imgImageCase from "figma:asset/878636f168c33ca0547d8673703ab88fbd7d73db.png";
-import imgImageCase1 from "figma:asset/49bab30f13ee4e563b05eedd661fe0af620ad064.png";
-import imgScreenshot20250521At1256461 from "figma:asset/5e8846bb371dfbb65e1e911816b2e8e3d4e885e9.png";
-import imgImageCase2 from "figma:asset/527f21a45dcaeea824ff14759d27072c0b472522.png";
-import imgImageCase3 from "figma:asset/9afcccf4645b369ccd0b623a8d3e671dbf9282ff.png";
+const imgFrame1881 = bookPlaceholder;
+const imgFrame1885 = bookPlaceholder;
+const imgFrame1880 = bookPlaceholder;
+const imgFrame1882 = bookPlaceholder;
+const imgFrame1890 = bookPlaceholder;
+const imgFrame1887 = bookPlaceholder;
+const imgFrame1883 = bookPlaceholder;
+const imgHaightGiffBook1 = bookPlaceholder;
+const imgHaight1 = bookPlaceholder;
+const imgHaightGiffBook2 = bookPlaceholder;
+
+// Additional images use same placeholder
+const imgImage = bookPlaceholder;
+const imgImage1 = bookPlaceholder;
+const imgImage2 = bookPlaceholder;
+const imgImage3 = bookPlaceholder;
+const imgImage4 = bookPlaceholder;
+const imgImage5 = bookPlaceholder;
+const imgImage6 = bookPlaceholder;
+const imgImage7 = bookPlaceholder;
+const imgImage8 = bookPlaceholder;
+const imgImage9 = bookPlaceholder;
+const imgImage10 = bookPlaceholder;
+const imgImage11 = bookPlaceholder;
+const imgImageCase = bookPlaceholder;
+const imgImageCase1 = bookPlaceholder;
+const imgScreenshot20250521At1256461 = bookPlaceholder;
+const imgImageCase2 = bookPlaceholder;
+const imgImageCase3 = bookPlaceholder;
 import imgImageCase4 from "figma:asset/0bb766f01459584eba04e707f5373ed2e2e2fd85.png";
 import imgImageCase5 from "figma:asset/4d9b7c049dc1124915e232401343d7927f78115c.png";
 import imgImageCase6 from "figma:asset/46c245bff42a46c4547ac363f45bc6aae2b9d650.png";
