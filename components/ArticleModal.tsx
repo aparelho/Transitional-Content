@@ -67,19 +67,14 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
       transform: baseTransform,
       opacity: opacity,
       transition: `all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${delay}ms`,
+      backdropFilter: 'blur(32.533px)',
+      WebkitBackdropFilter: 'blur(32.533px)',
     };
   };
 
   return (
-    <>
-      {/* Backdrop to ensure blur effect works */}
-      <div
-        className="fixed inset-0 pointer-events-none bg-transparent"
-        style={{ zIndex: 39 }}
-      />
-      <div style={modalStyle}>
-        <div className="flex flex-col h-full">
-
+    <div style={modalStyle}>
+      <div className="flex flex-col h-full">
 
         {/* Scrollable Article Cards Container */}
         <div className="flex-1 modal-scroll-container pb-6 pr-2 pt-6">
@@ -92,7 +87,7 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
               return (
                 <div
                   key={article.id}
-                  className="backdrop-blur-[32.533px] bg-[rgba(0,0,0,0.3)] rounded-[26.027px] shadow-[0px_0px_19.52px_0px_rgba(0,0,0,0.18)] w-full relative overflow-hidden"
+                  className="bg-[rgba(0,0,0,0.3)] rounded-[26.027px] shadow-[0px_0px_19.52px_0px_rgba(0,0,0,0.18)] w-full relative overflow-hidden"
                   style={{
                     ...getCardStyle(cardIndex),
                     opacity: animationState === 'visible' ? opacity : 0,
@@ -135,7 +130,7 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
 
             {/* Collection Summary Card */}
             <div
-              className="backdrop-blur-[32.533px] bg-[rgba(0,0,0,0.3)] rounded-[26.027px] shadow-[0px_0px_19.52px_0px_rgba(0,0,0,0.18)] w-full relative h-[161px] overflow-hidden"
+              className="bg-[rgba(0,0,0,0.3)] rounded-[26.027px] shadow-[0px_0px_19.52px_0px_rgba(0,0,0,0.18)] w-full relative h-[161px] overflow-hidden"
               style={{
                 ...getCardStyle(articles.length),
                 opacity: animationState === 'visible' ? 0.3 : 0,
@@ -157,9 +152,8 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
             </div>
           </div>
         </div>
-        </div>
       </div>
-    </>
+    </div>
   );
 };
 
