@@ -1,12 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ParticleUniverse from './components/ParticleUniverse';
 import NavigationSearch from './components/NavigationSearch';
 import ModalManager from './components/ModalManager';
 import LinearToggle from './components/LinearToggle';
 import { useAppState } from './components/hooks/useAppState';
+import { preloadImages } from './components/data/particleData';
 
 export default function App() {
   const [state, actions] = useAppState();
+
+  // Preload critical images on app start
+  useEffect(() => {
+    preloadImages();
+  }, []);
 
   return (
     <div className="w-screen h-screen bg-white overflow-hidden">
