@@ -191,18 +191,37 @@ const titles = [
   'Space Debris Cleanup Technologies and Orbital Sustainability for Future Space Missions'
 ];
 
-// Mock article data generator using imported book cover images
+// Optimized mock article data generator with memoization
+const articleCache = new Map<number, Article>();
+
 export const generateMockArticle = (id: number): Article => {
+  // Use cached article if it exists
+  if (articleCache.has(id)) {
+    return articleCache.get(id)!;
+  }
+
   const category = allCategories[id % allCategories.length];
   const title = titles[id % titles.length];
-  // Use imported book cover images instead of random images
   const imageIndex = id % bookImages.length;
   const bookCoverImage = bookImages[imageIndex];
-  
-  return {
+
+  const article = {
     id,
     title,
     image: bookCoverImage,
     category
   };
+
+  // Cache the article for future use
+  articleCache.set(id, article);
+  return article;
+};
+
+// Preload critical images for better performance
+export const preloadImages = () => {
+  // Preload first few images for immediate display
+  bookImages.slice(0, 10).forEach(imageSrc => {
+    const img = new Image();
+    img.src = imageSrc;
+  });
 };
