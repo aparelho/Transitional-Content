@@ -73,10 +73,10 @@ export function useAppState(): [AppState, AppActions] {
     setResetSearchTrigger(prev => prev + 1);
   }, []);
 
-  // Handle modal open - only move search bar if no modal was previously open
-  const handleModalOpen = useCallback(() => {
-    const wasAnyModalOpen = isCareersModalOpen || isAboutModalOpen || isModalOpen;
-    
+  // Shared modal open logic to reduce redundancy
+  const animateModalOpen = useCallback(() => {
+    const wasAnyModalOpen = isAnyModalOpen;
+
     if (!wasAnyModalOpen) {
       // Only animate search bar if no modal was open before
       setTimeout(() => {
@@ -86,57 +86,45 @@ export function useAppState(): [AppState, AppActions] {
       // Modal was already open, keep search at bottom immediately
       setIsModalOpen(true);
     }
-  }, [isCareersModalOpen, isAboutModalOpen, isModalOpen]);
+  }, [isAnyModalOpen]);
+
+  // Shared modal close logic
+  const resetModalState = useCallback(() => {
+    setIsModalOpen(false);
+    onResetSearchTrigger();
+  }, [onResetSearchTrigger]);
+
+  // Handle modal open
+  const handleModalOpen = useCallback(() => {
+    animateModalOpen();
+  }, [animateModalOpen]);
 
   // Handle careers modal close
   const handleCareersModalClose = useCallback(() => {
     setIsCareersModalOpen(false);
-    setIsModalOpen(false); // Reset modal state to return search to center
-    onResetSearchTrigger();
-  }, [onResetSearchTrigger]);
+    resetModalState();
+  }, [resetModalState]);
 
-  // Handle about modal close - properly reset about modal states
+  // Handle about modal close
   const handleAboutModalClose = useCallback(() => {
     setIsAboutModalOpen(false);
     setAboutModalReady(false);
-    setIsModalOpen(false); // Reset modal state to return search to center
-    // Reset the camera trigger to prevent it from being reused
     setAboutCameraActiveTrigger(0);
-    onResetSearchTrigger();
-  }, [onResetSearchTrigger]);
+    resetModalState();
+  }, [resetModalState]);
 
-  // Handle careers modal open - only move search bar if no modal was previously open
+  // Handle careers modal open
   const handleCareersModalOpen = useCallback(() => {
-    const wasAnyModalOpen = isCareersModalOpen || isAboutModalOpen || isModalOpen;
-    
-    if (!wasAnyModalOpen) {
-      // Only animate search bar if no modal was open before
-      setTimeout(() => {
-        setIsModalOpen(true);
-      }, 500);
-    } else {
-      // Modal was already open, keep search at bottom immediately
-      setIsModalOpen(true);
-    }
-  }, [isCareersModalOpen, isAboutModalOpen, isModalOpen]);
+    animateModalOpen();
+  }, [animateModalOpen]);
 
-  // Handle about modal open - only move search bar if no modal was previously open
+  // Handle about modal ready
   const handleAboutModalReady = useCallback((ready: boolean) => {
     setAboutModalReady(ready);
     if (ready) {
-      const wasAnyModalOpen = isCareersModalOpen || isAboutModalOpen || isModalOpen;
-      
-      if (!wasAnyModalOpen) {
-        // Only animate search bar if no modal was open before
-        setTimeout(() => {
-          setIsModalOpen(true);
-        }, 100);
-      } else {
-        // Modal was already open, keep search at bottom immediately
-        setIsModalOpen(true);
-      }
+      animateModalOpen();
     }
-  }, [isCareersModalOpen, isAboutModalOpen, isModalOpen]);
+  }, [animateModalOpen]);
 
   // Handle canvas click when modal is open - keep search at bottom during transitions
   const handleCanvasClick = useCallback(() => {
