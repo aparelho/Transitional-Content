@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import imgScreenshot20250722At1833072 from "figma:asset/bce7075b15da3c8d6804c53ef0167853f2767007.png";
+const imgScreenshot20250722At1833072 = "/images/search-icon.svg";
 
 interface NavigationSearchProps {
   onSearch: (searchTerm: string) => void;

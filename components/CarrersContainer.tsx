@@ -1,6 +1,6 @@
-import imgRectangle233 from "figma:asset/a744910773184597769b0b825130291f7bdb950b.png";
-import imgRectangle234 from "figma:asset/b6b97055dad7729ba74dd954d919a74d5b8c5b58.png";
-import imgRectangle236 from "figma:asset/5b3d8e90c347a5a3b55e48a7dc3a588ecd412635.png";
+const imgRectangle233 = "/images/book-placeholder.svg";
+const imgRectangle234 = "/images/book-placeholder.svg";
+const imgRectangle236 = "/images/book-placeholder.svg";
 
 function Frame2147227292() {
   return (
