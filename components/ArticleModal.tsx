@@ -89,6 +89,8 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
                   style={{
                     ...getCardStyle(cardIndex),
                     opacity: animationState === 'visible' ? opacity : 0,
+                    backdropFilter: 'blur(32.533px)',
+                    WebkitBackdropFilter: 'blur(32.533px)',
                   }}
                 >
                   {index === 0 ? (
