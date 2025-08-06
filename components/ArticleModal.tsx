@@ -50,11 +50,11 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
   const modalStyle = {
     position: 'fixed' as const,
     left: '50%',
-    bottom: '0px',
+    bottom: '20px',
     transform: 'translateX(-50%)',
     width: isMobile ? 'calc(100vw - 32px)' : '528px',
     maxWidth: isMobile ? 'none' : '528px',
-    maxHeight: isMobile ? 'calc(100vh - 32px)' : 'calc(100vh - 40px)',
+    maxHeight: isMobile ? 'calc(100vh - 52px)' : 'calc(100vh - 60px)',
     zIndex: 40, // Behind navigation search (z-50)
   };
 
@@ -67,8 +67,6 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
       transform: baseTransform,
       opacity: opacity,
       transition: `all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${delay}ms`,
-      backdropFilter: 'blur(32.533px)',
-      WebkitBackdropFilter: 'blur(32.533px)',
     };
   };
 
@@ -77,7 +75,7 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
       <div className="flex flex-col h-full">
 
         {/* Scrollable Article Cards Container */}
-        <div className="flex-1 modal-scroll-container pb-6 pr-2 pt-6">
+        <div className="flex-1 modal-scroll-container pb-6 pr-2 pt-6 overflow-y-auto max-h-full">
           <div className="flex flex-col gap-[13px]">
             {/* All Article Cards */}
             {articles.map((article, index) => {
