@@ -72,7 +72,7 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
 
   return (
     <div style={modalStyle}>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full backdrop-blur-sm">
 
 
         {/* Scrollable Article Cards Container */}
