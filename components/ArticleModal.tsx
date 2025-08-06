@@ -134,6 +134,8 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
               style={{
                 ...getCardStyle(articles.length),
                 opacity: animationState === 'visible' ? 0.3 : 0,
+                backdropFilter: 'blur(32.533px)',
+                WebkitBackdropFilter: 'blur(32.533px)',
               }}
             >
               <div className="absolute h-[68px] left-0 top-[26px] w-[488px] overflow-hidden">
