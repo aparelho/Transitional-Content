@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useIsMobile } from './ui/use-mobile';
 
 interface Article {
