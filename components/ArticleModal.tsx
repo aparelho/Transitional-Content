@@ -50,11 +50,11 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
   const modalStyle = {
     position: 'fixed' as const,
     left: '50%',
-    bottom: '0px',
+    bottom: '20px',
     transform: 'translateX(-50%)',
     width: isMobile ? 'calc(100vw - 32px)' : '528px',
     maxWidth: isMobile ? 'none' : '528px',
-    maxHeight: isMobile ? 'calc(100vh - 32px)' : 'calc(100vh - 40px)',
+    maxHeight: isMobile ? 'calc(100vh - 52px)' : 'calc(100vh - 60px)',
     zIndex: 40, // Behind navigation search (z-50)
   };
 
@@ -73,23 +73,32 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
   return (
     <div style={modalStyle}>
       <div className="flex flex-col h-full">
-
-
         {/* Scrollable Article Cards Container */}
-        <div className="flex-1 modal-scroll-container pb-6 pr-2 pt-6">
+        <div 
+          className="flex-1 modal-scroll-container pb-6 pr-2 pt-6 overflow-y-auto max-h-full"
+          style={{
+            backgroundImage: 'url(https://cdn.builder.io/api/v1/image/assets%2F14ad39154b8c4b0297a92d920ee7af25%2F26ad63415d3b4689b94818ad50378172)',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
+            margin: '0 auto auto',
+          }}
+        >
           <div className="flex flex-col gap-[13px]">
             {/* All Article Cards */}
             {articles.map((article, index) => {
-              const cardIndex = index; // No offset needed since we removed the header
-              const opacity = index === 0 ? 1 : index === 1 ? 0.8 : index < 4 ? 0.6 : 0.4; // Gradual fade effect
+              const cardIndex = index;
+              const opacity = index === 0 ? 1 : index === 1 ? 0.8 : index < 4 ? 0.6 : 0.4;
               
               return (
                 <div
                   key={article.id}
-                  className="backdrop-blur-[32.533px] bg-[rgba(0,0,0,0.3)] rounded-[26.027px] shadow-[0px_0px_19.52px_0px_rgba(0,0,0,0.18)] w-full relative overflow-hidden"
+                  className="bg-[rgba(0,0,0,0.3)] rounded-[26.027px] shadow-[0px_0px_19.52px_0px_rgba(0,0,0,0.18)] w-full relative overflow-hidden"
                   style={{
                     ...getCardStyle(cardIndex),
                     opacity: animationState === 'visible' ? opacity : 0,
+                    backdropFilter: 'blur(32.533px)',
+                    WebkitBackdropFilter: 'blur(32.533px)',
                   }}
                 >
                   {index === 0 ? (
@@ -104,26 +113,26 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
                       )}
                     </div>
                   ) : (
-                    // Regular text cards with auto-height
-                    <div className="relative min-h-[161px] pb-6">
-                      {/* Title section with auto-height */}
-                      <div className="pt-[26px] px-[30.906px] pb-4">
-                        <div className="font-['Plain:Regular',_sans-serif] leading-[29.28px] text-white text-[26.027px] text-left">
-                          <p className="block leading-[29.28px] whitespace-normal">
-                            {article.title}
-                          </p>
-                        </div>
+                    // Regular text cards - simplified structure without unnecessary wrapper divs
+                    <>
+                      {/* Title section */}
+                      <div 
+                        className="font-['Plain:Regular',_sans-serif] leading-[29.28px] text-white text-[26.027px] text-left pt-[26px] px-[30.906px] pb-4"
+                        style={{
+                          backdropFilter: index === 1 ? 'blur(60px)' : undefined,
+                          backgroundColor: index === 1 ? 'rgba(255, 255, 255, 1)' : undefined,
+                        }}
+                      >
+                        {article.title}
                       </div>
                       
-                      {/* Tags section with 16px spacing from title */}
-                      <div className="px-[30.906px]">
-                        <div className="font-['Plain:Regular',_sans-serif] text-white text-[17.92px] text-left">
-                          <p className="block leading-[20.16px]">
-                            {article.category} • {modalType.theme}
-                          </p>
-                        </div>
+                      {/* Tags section */}
+                      <div className="px-[30.906px] pb-5">
+                        <p className="font-['Plain:Regular',_sans-serif] text-white text-[17.92px] text-left leading-[20.16px]">
+                          {article.category} • {modalType.theme}
+                        </p>
                       </div>
-                    </div>
+                    </>
                   )}
                 </div>
               );
@@ -131,10 +140,12 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
 
             {/* Collection Summary Card */}
             <div
-              className="backdrop-blur-[32.533px] bg-[rgba(0,0,0,0.3)] rounded-[26.027px] shadow-[0px_0px_19.52px_0px_rgba(0,0,0,0.18)] w-full relative h-[161px] overflow-hidden"
+              className="bg-[rgba(0,0,0,0.3)] rounded-[26.027px] shadow-[0px_0px_19.52px_0px_rgba(0,0,0,0.18)] w-full relative h-[161px] overflow-hidden"
               style={{
                 ...getCardStyle(articles.length),
                 opacity: animationState === 'visible' ? 0.3 : 0,
+                backdropFilter: 'blur(32.533px)',
+                WebkitBackdropFilter: 'blur(32.533px)',
               }}
             >
               <div className="absolute h-[68px] left-0 top-[26px] w-[488px] overflow-hidden">
