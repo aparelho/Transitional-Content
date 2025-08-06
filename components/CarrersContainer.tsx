@@ -1,6 +1,6 @@
-const imgRectangle233 = "/images/book-placeholder.svg";
-const imgRectangle234 = "/images/book-placeholder.svg";
-const imgRectangle236 = "/images/book-placeholder.svg";
+const imgRectangle233 = "/images/webp/AP165-Osklen-Mockup-Desktop-SL06.webp";
+const imgRectangle234 = "/images/webp/DTS_AURA_Fanette_Guilloud_Photos_ID12959.webp";
+const imgRectangle236 = "/images/webp/FLORA-Apply Metallic Material-a65103ba.webp";
 
 function Frame2147227292() {
   return (
