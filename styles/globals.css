@@ -236,48 +236,37 @@ html, body {
 
 /* Smooth animations for word cursor - removed slide up animation to prevent flickering */
 
-/* Custom scrollbar for modal */
-.modal-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.modal-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-
-.modal-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
-}
-
-.modal-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
-
-/* Force scrolling behavior for modals */
+/* Consolidated modal scrollbar styles */
+.modal-scrollbar,
 .modal-scroll-container {
-  overflow-y: scroll !important;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.3) transparent;
 }
 
+.modal-scroll-container {
+  overflow-y: scroll !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.modal-scrollbar::-webkit-scrollbar,
 .modal-scroll-container::-webkit-scrollbar {
   width: 6px;
 }
 
+.modal-scrollbar::-webkit-scrollbar-track,
 .modal-scroll-container::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
 }
 
+.modal-scrollbar::-webkit-scrollbar-thumb,
 .modal-scroll-container::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.3);
   border-radius: 3px;
 }
 
+.modal-scrollbar::-webkit-scrollbar-thumb:hover,
 .modal-scroll-container::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.5);
 }
