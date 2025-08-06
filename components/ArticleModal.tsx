@@ -71,8 +71,14 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
   };
 
   return (
-    <div style={modalStyle}>
-      <div className="flex flex-col h-full">
+    <>
+      {/* Backdrop to ensure blur effect works */}
+      <div
+        className="fixed inset-0 pointer-events-none bg-transparent"
+        style={{ zIndex: 39 }}
+      />
+      <div style={modalStyle}>
+        <div className="flex flex-col h-full">
 
 
         {/* Scrollable Article Cards Container */}
@@ -108,7 +114,9 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
                     <div className="relative min-h-[50px] pb-5 flex flex-col">
                       {/* Title section with auto-height */}
                       <div className="pt-[26px] px-[30.906px] pb-4">
-                        <div className="font-['Plain:Regular',_sans-serif] leading-[29.28px] text-white text-[26.027px] text-left" />
+                        <div className="font-['Plain:Regular',_sans-serif] leading-[29.28px] text-white text-[26.027px] text-left">
+                          {article.title}
+                        </div>
                       </div>
                       
                       {/* Tags section with 16px spacing from title */}
@@ -149,8 +157,9 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
             </div>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
