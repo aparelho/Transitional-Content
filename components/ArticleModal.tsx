@@ -105,14 +105,10 @@ const ArticleModal: React.FC<ArticleModalProps> = ({
                     </div>
                   ) : (
                     // Regular text cards with auto-height
-                    <div className="relative min-h-[161px] pb-6">
+                    <div className="relative min-h-[50px] pb-5 flex flex-col">
                       {/* Title section with auto-height */}
                       <div className="pt-[26px] px-[30.906px] pb-4">
-                        <div className="font-['Plain:Regular',_sans-serif] leading-[29.28px] text-white text-[26.027px] text-left">
-                          <p className="block leading-[29.28px] whitespace-normal">
-                            {article.title}
-                          </p>
-                        </div>
+                        <div className="font-['Plain:Regular',_sans-serif] leading-[29.28px] text-white text-[26.027px] text-left" />
                       </div>
                       
                       {/* Tags section with 16px spacing from title */}
