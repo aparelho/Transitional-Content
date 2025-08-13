@@ -9,6 +9,7 @@ interface NavigationSearchProps {
   currentDynamicWord?: string;
   isModalOpen?: boolean;
   onCloseModal?: () => void;
+  isLinearMode?: boolean;
 }
 
 // Modal types with keywords for search matching
@@ -85,7 +86,7 @@ const modalTypes = [
   }
 ];
 
-export default function NavigationSearch({ onSearch, onHoverOut, resetSearchTrigger = 0, className = "", currentDynamicWord = "explore", isModalOpen = false, onCloseModal }: NavigationSearchProps) {
+export default function NavigationSearch({ onSearch, onHoverOut, resetSearchTrigger = 0, className = "", currentDynamicWord = "explore", isModalOpen = false, onCloseModal, isLinearMode = false }: NavigationSearchProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -93,7 +94,7 @@ export default function NavigationSearch({ onSearch, onHoverOut, resetSearchTrig
   const [isTransitioning, setIsTransitioning] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const transitionTimeoutRef = useRef<NodeJS.Timeout>();
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   const handleMouseLeave = useCallback((event: React.MouseEvent) => {
     // Only trigger hover out if the user is moving away from the navigation area
@@ -201,7 +202,7 @@ export default function NavigationSearch({ onSearch, onHoverOut, resetSearchTrig
     <div 
       ref={containerRef}
       className={`fixed left-1/2 transform -translate-x-1/2 z-[1002] w-full max-w-md px-4 transition-all duration-500 ease-out ${
-        isModalOpen 
+        isModalOpen || isLinearMode
           ? 'bottom-8 -translate-y-0' 
           : 'top-1/2 -translate-y-1/2'
       } ${className}`}

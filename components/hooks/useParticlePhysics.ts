@@ -6,10 +6,9 @@ import {
   TUNNEL_RADIUS, 
   TUNNEL_LENGTH, 
   FORWARD_SPEED, 
-  MIN_Z_DISTANCE,
-  FOCAL_LENGTH
+  MIN_Z_DISTANCE
 } from '../utils/particleUtils';
-import { generateMockArticle } from '../data/particleData';
+import { generateMockArticle, bookImages } from '../data/particleData';
 
 interface ParticleTarget {
   x: number;
@@ -45,7 +44,7 @@ export function useParticlePhysics(isMobile: boolean, isLinearMode: boolean = fa
       if (isLinearMode) {
         // Linear mode: arrange particles in a horizontal line at vertical center
         const screenWidth = window.innerWidth;
-        const screenHeight = window.innerHeight;
+        // const screenHeight = window.innerHeight;
         const lineLength = screenWidth * 2; // Make line longer than screen
         
         // Distribute particles along horizontal line
@@ -84,6 +83,7 @@ export function useParticlePhysics(isMobile: boolean, isLinearMode: boolean = fa
         baseVz: baseVz,
         size: random(2, 4),
         article: generateMockArticle(i),
+        imageIndex: i % bookImages.length,
         screenX: projected.x,
         screenY: projected.y,
         screenSize: projected.size
@@ -98,7 +98,7 @@ export function useParticlePhysics(isMobile: boolean, isLinearMode: boolean = fa
 
   // Calculate target positions for particles based on mode
   const calculateTargetPositions = useCallback((targetLinearMode: boolean): ParticleTarget[] => {
-    return particlesRef.current.map((particle, i) => {
+    return particlesRef.current.map(() => {
       if (targetLinearMode) {
         // Linear mode: arrange particles in a horizontal line
         const screenWidth = window.innerWidth;
@@ -166,6 +166,11 @@ export function useParticlePhysics(isMobile: boolean, isLinearMode: boolean = fa
     
     // Handle animation if in progress
     if (isAnimating) {
+      // Hint to browser we're animating frequently
+      // (Consumers can choose to attach this to a canvas or container)
+      // No-op here but ensures branch stays hot for JIT
+      // eslint-disable-next-line no-self-assign
+      animationProgress.current = animationProgress.current;
       const elapsed = now - animationStartTime.current;
       const rawProgress = elapsed / ANIMATION_DURATION;
       

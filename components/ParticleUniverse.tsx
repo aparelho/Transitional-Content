@@ -6,6 +6,7 @@ import { useIsMobile } from './ui/use-mobile';
 import { useParticlePhysics } from './hooks/useParticlePhysics';
 import { useCameraAnimation } from './hooks/useCameraAnimation';
 import { useParticleInteractions } from './hooks/useParticleInteractions';
+import LinearStrip from './LinearStrip';
 import { modalTypes, searchWords, thematicWords, type Article } from './data/particleData';
 import { MIN_Z_DISTANCE, TUNNEL_LENGTH, map } from './utils/particleUtils';
 
@@ -28,7 +29,7 @@ interface ParticleUniverseProps {
 
 const ParticleUniverse: React.FC<ParticleUniverseProps> = ({ 
   searchTrigger = null,
-  closeModalTrigger = 0,
+  // closeModalTrigger = 0,
   onModalClose,
   onModalOpen,
   onWordUpdate,
@@ -60,10 +61,9 @@ const ParticleUniverse: React.FC<ParticleUniverseProps> = ({
   const { 
     isCameraRotating, 
     spiderDisabled, 
-    aboutModalReady, 
     startCameraRotation, 
     updateCameraAnimation,
-    setAboutModalReady: setCameraAboutModalReady,
+    setAboutModalReady: _setCameraAboutModalReady,
     resetCameraState
   } = useCameraAnimation();
   
@@ -86,6 +86,16 @@ const ParticleUniverse: React.FC<ParticleUniverseProps> = ({
   const [showParticles, setShowParticles] = useState(true);
   const [showAurora, setShowAurora] = useState(false);
   
+  // Linear mode transition phases
+  type LinearPhase = 'idle' | 'fading' | 'gather' | 'reveal' | 'strip';
+  const [linearPhase, setLinearPhase] = useState<LinearPhase>('idle');
+  const fadeStartRef = useRef<number>(0);
+  const gatherStartRef = useRef<number>(0);
+  const revealStartRef = useRef<number>(0);
+  const keptIdsRef = useRef<Set<number>>(new Set());
+  const [stripArticles, setStripArticles] = useState<Article[]>([]);
+  const [revealFrom, setRevealFrom] = useState<{ x: number; y: number; size: number }[]>([]);
+  
   // Word and interaction state
   const [cursorWords, setCursorWords] = useState<string[]>([]);
   const [highlightedWord, setHighlightedWord] = useState<string>('');
@@ -94,17 +104,17 @@ const ParticleUniverse: React.FC<ParticleUniverseProps> = ({
   // Refs for interaction management
   const lastWordUpdateTime = useRef<number>(0);
   const previousClosestId = useRef<number | null>(null);
-  const wordCycleInterval = useRef<NodeJS.Timeout | null>(null);
+  const wordCycleInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const isMouseMoving = useRef<boolean>(false);
-  const mouseStopTimeout = useRef<NodeJS.Timeout | null>(null);
+  const mouseStopTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchWordIndex = useRef<number>(0);
   const lastSearchWordUpdate = useRef<number>(0);
   const auroraTimeRef = useRef<number>(0);
 
   // Function to check if mouse is over navigation area
   const isMouseOverNavigation = useCallback((mouseX: number, mouseY: number, canvasWidth: number, canvasHeight: number) => {
-    if (isAnyModalOpen) {
-      // When modal is open, navigation is at bottom
+    if (isAnyModalOpen || isLinearMode) {
+      // When modal is open or linear mode is active, navigation is at bottom
       const navArea = {
         x: canvasWidth / 2 - 200, // Approximate navigation width
         y: canvasHeight - 150, // Bottom area
@@ -114,7 +124,7 @@ const ParticleUniverse: React.FC<ParticleUniverseProps> = ({
       return mouseX >= navArea.x && mouseX <= navArea.x + navArea.width && 
              mouseY >= navArea.y && mouseY <= navArea.y + navArea.height;
     } else {
-      // When no modal, navigation is centered
+      // When no modal and not in linear mode, navigation is centered
       const navArea = {
         x: canvasWidth / 2 - 200,
         y: canvasHeight / 2 - 75,
@@ -124,7 +134,7 @@ const ParticleUniverse: React.FC<ParticleUniverseProps> = ({
       return mouseX >= navArea.x && mouseX <= navArea.x + navArea.width && 
              mouseY >= navArea.y && mouseY <= navArea.y + navArea.height;
     }
-  }, [isAnyModalOpen]);
+  }, [isAnyModalOpen, isLinearMode]);
 
   // Generate preview words from connected particles and modal type
   const generatePreviewWords = useCallback((connectedParticles: any[], currentModalType: any, rotationIndex: number = 0) => {
@@ -224,16 +234,14 @@ const ParticleUniverse: React.FC<ParticleUniverseProps> = ({
   }, [onModalOpen]);
 
   // Modal functions
-  const closeModal = useCallback(() => {
-    setIsModalClosing(true);
-    setTimeout(() => {
-      setShowModal(false);
-      setIsModalClosing(false);
-      if (onModalClose) {
-        onModalClose();
-      }
-    }, 300); // Match the animation duration
-  }, [onModalClose]);
+  // const closeModal = useCallback(() => {
+  //   setIsModalClosing(true);
+  //   setTimeout(() => {
+  //     setShowModal(false);
+  //     setIsModalClosing(false);
+  //     onModalClose?.();
+  //   }, 300);
+  // }, [onModalClose]);
 
   const showModalForCurrentPosition = useCallback(() => {
     const canvas = canvasRef.current;
@@ -301,213 +309,254 @@ const ParticleUniverse: React.FC<ParticleUniverseProps> = ({
     // Update particles
     updateParticles(width, height);
 
-    // Draw particles
-    for (let particle of particlesRef.current) {
-      // Only draw if particle is in front of camera and on screen
-      if (showParticles && particle.z > MIN_Z_DISTANCE && particle.screenSize > 0.1 && 
-          particle.screenX > -50 && particle.screenX < width + 50 &&
-          particle.screenY > -50 && particle.screenY < height + 50) {
-        
-        // Calculate opacity based on distance (closer = brighter)
-        const maxDistance = TUNNEL_LENGTH;
-        const opacity = 1 - (particle.z / maxDistance);
-        
+    // Draw particles with linear transition phases
+    if (linearPhase !== 'strip') {
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const kept = keptIdsRef.current;
+      const nowMs = now;
+      const FADE_DURATION = 200; // ms - reduced to 0.2s for faster fade
+      const GATHER_DURATION = 600; // ms
+
+      for (let particle of particlesRef.current) {
+        if (!(particle.z > MIN_Z_DISTANCE && particle.screenSize > 0.1 &&
+              particle.screenX > -50 && particle.screenX < width + 50 &&
+              particle.screenY > -50 && particle.screenY < height + 50)) {
+          continue;
+        }
+        if (!showParticles) continue;
+
+        // Base opacity from depth
+        const depthOpacity = 1 - (particle.z / TUNNEL_LENGTH);
+        let alphaMultiplier = 0.8 * depthOpacity;
+        let drawX = particle.screenX;
+        let drawY = particle.screenY;
+
+        if (linearPhase === 'fading') {
+          const t = Math.min(1, (nowMs - fadeStartRef.current) / FADE_DURATION);
+          const isKept = kept.has(particle.article.id);
+          if (!isKept) {
+            alphaMultiplier *= (1 - t);
+            if (alphaMultiplier <= 0.01) continue; // fully faded
+          }
+          // Advance to gather when fade completes
+          if (t >= 1 && gatherStartRef.current === 0) {
+            gatherStartRef.current = nowMs;
+            setLinearPhase('gather');
+          }
+        } else if (linearPhase === 'gather') {
+          // Only draw kept particles; fade others out completely
+          if (!kept.has(particle.article.id)) continue;
+          const t = Math.min(1, (nowMs - gatherStartRef.current) / GATHER_DURATION);
+          // Ease-out cubic
+          const easeT = 1 - Math.pow(1 - t, 3);
+          drawX = particle.screenX + (centerX - particle.screenX) * easeT;
+          drawY = particle.screenY + (centerY - particle.screenY) * easeT;
+          if (t >= 1) {
+            // Switch to reveal after gather completes
+            setLinearPhase('reveal');
+          }
+        }
+
         const baseColor = particleColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
         if (baseColor) {
-          ctx.fillStyle = `rgba(${baseColor[1]}, ${baseColor[2]}, ${baseColor[3]}, ${opacity * 0.8})`;
+          ctx.fillStyle = `rgba(${baseColor[1]}, ${baseColor[2]}, ${baseColor[3]}, ${alphaMultiplier})`;
         } else {
-          ctx.fillStyle = `rgba(0, 0, 0, ${opacity * 0.8})`;
+          ctx.fillStyle = `rgba(0, 0, 0, ${alphaMultiplier})`;
         }
-        
+
         ctx.beginPath();
-        ctx.arc(particle.screenX, particle.screenY, particle.screenSize / 2, 0, Math.PI * 2);
+        ctx.arc(drawX, drawY, particle.screenSize / 2, 0, Math.PI * 2);
         ctx.fill();
       }
     }
 
-    // Update search word on mouse movement (faster cycling)
-    if (now - lastSearchWordUpdate.current > 300 && onWordUpdate) { // Update every 300ms on mouse move
-      searchWordIndex.current = (searchWordIndex.current + 1) % searchWords.length;
-      onWordUpdate(searchWords[searchWordIndex.current]);
-      lastSearchWordUpdate.current = now;
-    }
-
-    // Get connected particles and update cursor words
-    const mouseX = mouseRef.current.x;
-    const mouseY = mouseRef.current.y;
-    const maxConnectionDistance = isMobile ? 300 : 400;
-    const maxConnections = 7;
-
-    let nearbyParticles = [];
-    const isOverNavigation = isMouseOverNavigation(mouseX, mouseY, width, height);
-    
-    if (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height && !isOverNavigation) {
-      nearbyParticles = getConnectedParticles(
-        particlesRef.current,
-        mouseX,
-        mouseY,
-        width,
-        height,
-        maxConnectionDistance,
-        maxConnections,
-        MIN_Z_DISTANCE
-      );
-
-      // Draw connections in 3D space (only if not over navigation and spider not disabled)
-      if (!spiderDisabled && !isOverNavigation) {
-        for (let i = 0; i < nearbyParticles.length; i++) {
-          const { particle, distance: dist } = nearbyParticles[i];
-          
-          // Normal state
-          const depthFade = 1 - (particle.z / TUNNEL_LENGTH);
-          const alpha = map(dist, 0, maxConnectionDistance, 0.8, 0.05) * depthFade;
-          const lineWidth = Math.max(0.5, particle.screenSize / 6);
-          ctx.strokeStyle = `rgba(0, 0, 0, ${alpha})`;
-          
-          ctx.lineWidth = lineWidth;
-          
-          ctx.beginPath();
-          ctx.moveTo(mouseX, mouseY);
-          ctx.lineTo(particle.screenX, particle.screenY);
-          ctx.stroke();
-        }
+    // Only update search words and cursor interactions when NOT in linear mode
+    if (linearPhase === 'idle') {
+      // Update search word on mouse movement (faster cycling)
+      if (now - lastSearchWordUpdate.current > 300 && onWordUpdate) { // Update every 300ms on mouse move
+        searchWordIndex.current = (searchWordIndex.current + 1) % searchWords.length;
+        onWordUpdate(searchWords[searchWordIndex.current]);
+        lastSearchWordUpdate.current = now;
       }
 
-      // Mouse indicator (only show when not over navigation)
-      if (!isOverNavigation) {
-        ctx.fillStyle = `rgba(0, 0, 0, 0.8)`;
-        ctx.beginPath();
-        ctx.arc(mouseX, mouseY, 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      // Get connected particles and update cursor words
+      const mouseX = mouseRef.current.x;
+      const mouseY = mouseRef.current.y;
+      const maxConnectionDistance = isMobile ? 300 : 400;
+      const maxConnections = 7;
 
-      // Update cursor words based on connections
-      if (nearbyParticles.length > 0) {
-        // Determine modal type based on position
-        const regionX = Math.floor((mouseX / width) * 5);
-        const regionY = Math.floor((mouseY / height) * 2);
-        const currentModalTypeIndex = (regionY * 5 + regionX) % 10;
-        const currentModalType = modalTypes[currentModalTypeIndex];
-        
-        // Check if we should update words (only when mouse is moving and longer intervals)
-        const shouldUpdateWords = isMouseMoving.current && now - lastWordUpdateTime.current > 1000; // Update every 1 second and only when moving
-        
-        // Also update if closest particle changes (but only when mouse is moving)
-        const currentClosestId = nearbyParticles[0]?.particle?.article?.id;
-        const closestParticleChanged = isMouseMoving.current && currentClosestId !== previousClosestId.current;
-        
-        if (shouldUpdateWords || closestParticleChanged) {
-          previousClosestId.current = currentClosestId;
-          lastWordUpdateTime.current = now;
-          
-          // Increment rotation index for word variety
-          setWordRotationIndex(prev => prev + 1);
-        }
-        
-        // Start continuous word cycling when connected to particles (but only when moving)
-        if (!wordCycleInterval.current && isMouseMoving.current) {
-          wordCycleInterval.current = setInterval(() => {
-            if (isMouseMoving.current) {
-              setWordRotationIndex(prev => prev + 1);
-            }
-          }, 1500); // Cycle words every 1.5 seconds when connected and moving
-        }
-        
-        // Safety check to ensure currentModalType exists
-        if (currentModalType) {
-          const words = generatePreviewWords(nearbyParticles, currentModalType, wordRotationIndex);
-          setCursorWords(words);
-          
-          // Set highlighted word (changes based on closest particle)
-          if (nearbyParticles[0] && nearbyParticles[0].particle && nearbyParticles[0].particle.article) {
-            const closestCategory = nearbyParticles[0].particle.article.category.toLowerCase();
-            const matchingWord = words.find(word => 
-              closestCategory.includes(word) || word.includes(closestCategory)
-            );
-            setHighlightedWord(matchingWord || words[Math.floor(Math.random() * words.length)]);
-          } else {
-            setHighlightedWord(words[Math.floor(Math.random() * words.length)] || '');
-          }
-        } else {
-          setCursorWords(['explore', 'discover']);
-          setHighlightedWord('explore');
-        }
-      } else {
-        setCursorWords([]);
-        setHighlightedWord('');
-        
-        // Clear word cycling interval when not connected
-        if (wordCycleInterval.current) {
-          clearInterval(wordCycleInterval.current);
-          wordCycleInterval.current = null;
-        }
-      }
-    }
+      let nearbyParticles: Array<{ particle: any; distance: number; distance3D: number }> = [];
+      const isOverNavigation = isMouseOverNavigation(mouseX, mouseY, width, height);
+      
+      if (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height && !isOverNavigation) {
+        nearbyParticles = getConnectedParticles(
+          particlesRef.current,
+          mouseX,
+          mouseY,
+          width,
+          height,
+          maxConnectionDistance,
+          maxConnections,
+          MIN_Z_DISTANCE
+        );
 
-    // Always update persistent images system and draw them
-    const connectedParticleIds = new Set(nearbyParticles.map(item => item.particle.article.id));
-    updatePersistentImages(connectedParticleIds, now);
-    
-    // Always draw persistent images for natural fade behavior
-    persistentImages.current.forEach((imageData, particleId) => {
-      if (imageData.fadeAlpha > 0) {
-        // Find the particle to get its current screen position
-        const particle = particlesRef.current.find(p => p.article.id === particleId);
-        if (particle && particle.z > MIN_Z_DISTANCE && particle.screenSize > 0.1 && 
-            particle.screenX > -150 && particle.screenX < width + 150 &&
-            particle.screenY > -150 && particle.screenY < height + 150) {
-          
-          const bookImg = imageData.img;
-          if (bookImg.complete && bookImg.naturalWidth > 0) {
-            // Calculate image size
-            const maxSize = 100;
-            const aspectRatio = bookImg.naturalWidth / bookImg.naturalHeight;
-            let imgWidth, imgHeight;
+        // Draw connections (spider) only in idle phase
+        if (!spiderDisabled && !isOverNavigation) {
+          for (let i = 0; i < nearbyParticles.length; i++) {
+            const { particle, distance: dist } = nearbyParticles[i];
             
-            if (aspectRatio > 1) {
-              imgWidth = Math.min(maxSize, bookImg.naturalWidth);
-              imgHeight = imgWidth / aspectRatio;
-            } else {
-              imgHeight = Math.min(maxSize, bookImg.naturalHeight);
-              imgWidth = imgHeight * aspectRatio;
-            }
-            
-            // Position image near the particle
-            const imgX = particle.screenX - imgWidth / 2;
-            const imgY = particle.screenY - imgHeight / 2;
-            
-            // Save context for border radius and alpha
-            ctx.save();
-            
-            // Create rounded rectangle path
-            const radius = 5;
-            ctx.beginPath();
-            ctx.moveTo(imgX + radius, imgY);
-            ctx.lineTo(imgX + imgWidth - radius, imgY);
-            ctx.quadraticCurveTo(imgX + imgWidth, imgY, imgX + imgWidth, imgY + radius);
-            ctx.lineTo(imgX + imgWidth, imgY + imgHeight - radius);
-            ctx.quadraticCurveTo(imgX + imgWidth, imgY + imgHeight, imgX + imgWidth - radius, imgY + imgHeight);
-            ctx.lineTo(imgX + radius, imgY + imgHeight);
-            ctx.quadraticCurveTo(imgX, imgY + imgHeight, imgX, imgY + imgHeight - radius);
-            ctx.lineTo(imgX, imgY + radius);
-            ctx.quadraticCurveTo(imgX, imgY, imgX + radius, imgY);
-            ctx.closePath();
-            
-            // Clip to rounded rectangle
-            ctx.clip();
-            
-            // Apply smooth fade alpha with depth
+            // Normal state
             const depthFade = 1 - (particle.z / TUNNEL_LENGTH);
-            ctx.globalAlpha = imageData.fadeAlpha * 0.9 * depthFade;
+            const alpha = map(dist, 0, maxConnectionDistance, 0.8, 0.05) * depthFade;
+            const lineWidth = Math.max(0.5, particle.screenSize / 6);
+            ctx.strokeStyle = `rgba(0, 0, 0, ${alpha})`;
             
-            ctx.drawImage(bookImg, imgX, imgY, imgWidth, imgHeight);
+            ctx.lineWidth = lineWidth;
             
-            // Restore context
-            ctx.restore();
+            ctx.beginPath();
+            ctx.moveTo(mouseX, mouseY);
+            ctx.lineTo(particle.screenX, particle.screenY);
+            ctx.stroke();
+          }
+        }
+
+        // Mouse indicator (only show when not over navigation)
+        if (!isOverNavigation) {
+          ctx.fillStyle = `rgba(0, 0, 0, 0.8)`;
+          ctx.beginPath();
+          ctx.arc(mouseX, mouseY, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Update cursor words based on connections
+        if (nearbyParticles.length > 0) {
+          // Determine modal type based on position
+          const regionX = Math.floor((mouseX / width) * 5);
+          const regionY = Math.floor((mouseY / height) * 2);
+          const currentModalTypeIndex = (regionY * 5 + regionX) % 10;
+          const currentModalType = modalTypes[currentModalTypeIndex];
+          
+          // Check if we should update words (only when mouse is moving and longer intervals)
+          const shouldUpdateWords = isMouseMoving.current && now - lastWordUpdateTime.current > 1000; // Update every 1 second and only when moving
+          
+          // Also update if closest particle changes (but only when mouse is moving)
+          const currentClosestId = nearbyParticles[0]?.particle?.article?.id;
+          const closestParticleChanged = isMouseMoving.current && currentClosestId !== previousClosestId.current;
+          
+          if (shouldUpdateWords || closestParticleChanged) {
+            previousClosestId.current = currentClosestId;
+            lastWordUpdateTime.current = now;
+            
+            // Increment rotation index for word variety
+            setWordRotationIndex(prev => prev + 1);
+          }
+          
+          // Start continuous word cycling when connected to particles (but only when moving)
+          if (!wordCycleInterval.current && isMouseMoving.current) {
+            wordCycleInterval.current = setInterval(() => {
+              if (isMouseMoving.current) {
+                setWordRotationIndex(prev => prev + 1);
+              }
+            }, 1500); // Cycle words every 1.5 seconds when connected and moving
+          }
+          
+          // Safety check to ensure currentModalType exists
+          if (currentModalType) {
+            const words = generatePreviewWords(nearbyParticles, currentModalType, wordRotationIndex);
+            setCursorWords(words);
+            
+            // Set highlighted word (changes based on closest particle)
+            if (nearbyParticles[0] && nearbyParticles[0].particle && nearbyParticles[0].particle.article) {
+              const closestCategory = nearbyParticles[0].particle.article.category.toLowerCase();
+              const matchingWord = words.find(word => 
+                closestCategory.includes(word) || word.includes(closestCategory)
+              );
+              setHighlightedWord(matchingWord || words[Math.floor(Math.random() * words.length)]);
+            } else {
+              setHighlightedWord(words[Math.floor(Math.random() * words.length)] || '');
+            }
+          } else {
+            setCursorWords(['explore', 'discover']);
+            setHighlightedWord('explore');
+          }
+        } else {
+          setCursorWords([]);
+          setHighlightedWord('');
+          
+          // Clear word cycling interval when not connected
+          if (wordCycleInterval.current) {
+            clearInterval(wordCycleInterval.current);
+            wordCycleInterval.current = null;
           }
         }
       }
-    });
+
+      // Only update persistent images system and draw them in idle mode
+      const connectedParticleIds = new Set(nearbyParticles.map(item => item.particle.article.id));
+      updatePersistentImages(connectedParticleIds, now);
+      
+      // Always draw persistent images for natural fade behavior
+      persistentImages.current.forEach((imageData, particleId) => {
+        if (imageData.fadeAlpha > 0) {
+          // Find the particle to get its current screen position
+          const particle = particlesRef.current.find(p => p.article.id === particleId);
+          if (particle && particle.z > MIN_Z_DISTANCE && particle.screenSize > 0.1 && 
+              particle.screenX > -150 && particle.screenX < width + 150 &&
+              particle.screenY > -150 && particle.screenY < height + 150) {
+            
+            const bookImg = imageData.img;
+            if (bookImg.complete && bookImg.naturalWidth > 0) {
+              // Calculate image size
+              const maxSize = 100;
+              const aspectRatio = bookImg.naturalWidth / bookImg.naturalHeight;
+              let imgWidth, imgHeight;
+              
+              if (aspectRatio > 1) {
+                imgWidth = Math.min(maxSize, bookImg.naturalWidth);
+                imgHeight = imgWidth / aspectRatio;
+              } else {
+                imgHeight = Math.min(maxSize, bookImg.naturalHeight);
+                imgWidth = imgHeight * aspectRatio;
+              }
+              
+              // Position image near the particle
+              const imgX = particle.screenX - imgWidth / 2;
+              const imgY = particle.screenY - imgHeight / 2;
+              
+              // Save context for border radius and alpha
+              ctx.save();
+              
+              // Create rounded rectangle path
+              const radius = 5;
+              ctx.beginPath();
+              ctx.moveTo(imgX + radius, imgY);
+              ctx.lineTo(imgX + imgWidth - radius, imgY);
+              ctx.quadraticCurveTo(imgX + imgWidth, imgY, imgX + imgWidth, imgY + radius);
+              ctx.lineTo(imgX + imgWidth, imgY + imgHeight - radius);
+              ctx.quadraticCurveTo(imgX + imgWidth, imgY + imgHeight, imgX + imgWidth - radius, imgY + imgHeight);
+              ctx.lineTo(imgX + radius, imgY + imgHeight);
+              ctx.quadraticCurveTo(imgX, imgY + imgHeight, imgX, imgY + imgHeight - radius);
+              ctx.lineTo(imgX, imgY + radius);
+              ctx.quadraticCurveTo(imgX, imgY, imgX + radius, imgY);
+              ctx.closePath();
+              
+              // Clip to rounded rectangle
+              ctx.clip();
+              
+              // Apply smooth fade alpha with depth
+              const depthFade = 1 - (particle.z / TUNNEL_LENGTH);
+              ctx.globalAlpha = imageData.fadeAlpha * 0.9 * depthFade;
+              
+              ctx.drawImage(bookImg, imgX, imgY, imgWidth, imgHeight);
+              
+              // Restore context
+              ctx.restore();
+            }
+          }
+        }
+      });
+    }
 
     // Draw Aurora Borealis effect at the bottom of the screen
     if (showAurora) {
@@ -523,7 +572,7 @@ const ParticleUniverse: React.FC<ParticleUniverseProps> = ({
         { speed: 0.7, intensity: 0.8, offset: Math.PI / 2, colors: ['#88ffaa', '#88aaff', '#cc88ff'] }
       ];
       
-      layers.forEach((layer, layerIndex) => {
+      layers.forEach((layer) => {
         // Create gradient for each layer
         const gradient = ctx.createLinearGradient(0, auroraStartY, 0, height);
         
@@ -552,76 +601,43 @@ const ParticleUniverse: React.FC<ParticleUniverseProps> = ({
           
           const b = Math.floor(
             (parseInt(layer.colors[0].substr(5, 2), 16) * wave1 +
-            parseInt(layer.colors[1].substr(5, 2), 16) * wave2 +
+            parseInt(layer.colors[1].substr(3, 2), 16) * wave2 +
             parseInt(layer.colors[2].substr(5, 2), 16) * wave3) / 2
           );
           
-          // More visible alpha with stronger intensity
-          const alpha = Math.pow(t, 1.5) * layer.intensity * (1.2 - layerIndex * 0.2);
-          
+          // Apply intensity and create gradient stops
+          const alpha = layer.intensity * (0.3 + 0.7 * Math.sin(t * Math.PI));
           gradient.addColorStop(t, `rgba(${r}, ${g}, ${b}, ${alpha})`);
         }
         
-        // Draw the aurora layer with wave-like path
+        // Draw the aurora layer
         ctx.fillStyle = gradient;
-        // Use multiply for darker effect on white background, or overlay for mixed effect
-        ctx.globalCompositeOperation = layerIndex === 0 ? 'multiply' : 'screen';
-        
-        ctx.beginPath();
-        ctx.moveTo(0, height);
-        
-        // Create wavy top edge of aurora
-        for (let x = 0; x <= width; x += 8) {
-          const waveTime = auroraTimeRef.current * layer.speed + layer.offset;
-          const normalizedX = x / width;
-          
-          // Multiple sine waves for complex aurora shape
-          const wave1 = Math.sin(waveTime + normalizedX * Math.PI * 4) * 40;
-          const wave2 = Math.sin(waveTime * 0.6 + normalizedX * Math.PI * 2.5) * 60;
-          const wave3 = Math.sin(waveTime * 1.4 + normalizedX * Math.PI * 6) * 25;
-          
-          const y = auroraStartY + wave1 + wave2 + wave3 + layerIndex * 30;
-          
-          if (x === 0) {
-            ctx.moveTo(x, Math.max(0, y));
-          } else {
-            ctx.lineTo(x, Math.max(0, y));
-          }
-        }
-        
-        // Complete the shape
-        ctx.lineTo(width, height);
-        ctx.lineTo(0, height);
-        ctx.closePath();
-        ctx.fill();
-        
-        // Reset composite operation
-        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillRect(0, auroraStartY, width, auroraHeight);
       });
     }
 
+    // Continue animation loop
     animationRef.current = requestAnimationFrame(draw);
   }, [
     backgroundColor, 
+    particleColor, 
+    showParticles, 
+    showAurora, 
+    linearPhase, 
+    keptIdsRef, 
+    fadeStartRef, 
+    gatherStartRef, 
+    isMobile, 
+    onWordUpdate, 
+    spiderDisabled, 
+    getConnectedParticles, 
+    updatePersistentImages, 
+    persistentImages, 
     updateCameraAnimation, 
     cameraRotationProgress, 
     isAboutModalOpen, 
-    onAboutModalReady, 
-    updateParticles, 
-    showParticles,
-    particleColor,
-    onWordUpdate, 
-    isMobile, 
-    getConnectedParticles, 
-    generatePreviewWords, 
-    wordRotationIndex, 
-    updatePersistentImages,
-    isMouseMoving,
-    spiderDisabled,
-    showAurora,
-    isMouseOverNavigation,
-    isLinearMode,
-    isAnimating
+    onAboutModalReady,
+    updateParticles
   ]);
 
   // Event handlers
@@ -738,6 +754,55 @@ const ParticleUniverse: React.FC<ParticleUniverseProps> = ({
 
   // Note: Removed the effect that reinitializes particles when linear mode changes
   // The animation is now handled within useParticlePhysics hook
+  // Chrome flicker mitigation on linear toggle: flush a frame before heavy updates
+  useEffect(() => {
+    if (isLinearMode) {
+      // Prepare kept subset (~25%) and begin fading phase
+      const allParticles = particlesRef.current;
+      const kept = new Set<number>();
+      for (let i = 0; i < allParticles.length; i++) {
+        if (i % 4 === 0) kept.add(allParticles[i].article.id);
+      }
+      keptIdsRef.current = kept;
+      // Build strip article list in the same order
+      const articles: Article[] = allParticles
+        .filter((_, idx) => idx % 4 === 0)
+        .map(p => p.article);
+      setStripArticles(articles);
+      // Capture reveal origins (approx from gathered center visuals)
+      const origins = allParticles
+        .filter((_, idx) => idx % 4 === 0)
+        .map(p => ({ x: p.screenX, y: p.screenY, size: Math.max(50, Math.min(100, p.screenSize * 30)) }));
+      setRevealFrom(origins);
+      fadeStartRef.current = Date.now();
+      gatherStartRef.current = 0;
+      setLinearPhase('fading');
+      // Hide the initial compositor glitch
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const prev = canvas.style.opacity;
+        canvas.style.opacity = '0.995';
+        requestAnimationFrame(() => { canvas.style.opacity = prev || '1'; });
+      }
+    } else {
+      // Reset to idle
+      setLinearPhase('idle');
+      keptIdsRef.current = new Set();
+      setStripArticles([]);
+      fadeStartRef.current = 0;
+      gatherStartRef.current = 0;
+      revealStartRef.current = 0;
+    }
+  }, [isLinearMode]);
+
+  // Auto-advance from reveal to strip after reveal animation completes
+  useEffect(() => {
+    if (linearPhase === 'reveal') {
+      revealStartRef.current = Date.now();
+      const tm = setTimeout(() => setLinearPhase('strip'), 900);
+      return () => clearTimeout(tm);
+    }
+  }, [linearPhase]);
 
   // Notify parent component of animation state changes
   useEffect(() => {
@@ -805,7 +870,9 @@ const ParticleUniverse: React.FC<ParticleUniverseProps> = ({
           top: 0, 
           left: 0, 
           zIndex: 1,
-          cursor: 'none'
+          cursor: 'none',
+          willChange: 'transform, opacity',
+          transform: 'translateZ(0)'
         }}
       />
       
@@ -880,6 +947,14 @@ const ParticleUniverse: React.FC<ParticleUniverseProps> = ({
         position={mouseRef.current}
         highlightedWord={highlightedWord}
         hideOverNavigation={isMouseOverNavigation(mouseRef.current.x, mouseRef.current.y, window.innerWidth, window.innerHeight)}
+      />
+
+      {/* Linear strip overlay once particles have gathered */}
+      <LinearStrip
+        articles={stripArticles}
+        visible={linearPhase === 'reveal' || linearPhase === 'strip'}
+        phase={linearPhase === 'reveal' ? 'reveal' : 'strip'}
+        revealFrom={revealFrom}
       />
     </>
   );

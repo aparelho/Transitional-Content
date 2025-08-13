@@ -222,6 +222,8 @@ html, body {
   overflow: hidden;
   height: 100%;
   width: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 #root {

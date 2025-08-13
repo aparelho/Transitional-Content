@@ -19,6 +19,7 @@ export interface Particle {
   baseVz: number; // Original z velocity for tunnel effect
   size: number;
   article: Article;
+  imageIndex: number; // Stable mapping to image array
   screenX: number; // Projected 2D coordinates
   screenY: number;
   screenSize: number; // Size after perspective projection

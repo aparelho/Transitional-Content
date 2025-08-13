@@ -11,7 +11,7 @@ export default function LinearToggle({ isLinearMode, onToggle, isAnyModalOpen, i
   return (
     <div 
       className={`fixed right-8 z-[1002] transition-all duration-500 ease-out ${
-        isAnyModalOpen 
+        isAnyModalOpen || isLinearMode
           ? 'bottom-8' 
           : 'top-1/2 -translate-y-1/2'
       }`}

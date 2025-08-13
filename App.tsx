@@ -40,6 +40,7 @@ export default function App() {
         currentDynamicWord={state.currentDynamicWord}
         isModalOpen={actions.isAnyModalOpen}
         onCloseModal={actions.handleCloseModalFromNavigation}
+        isLinearMode={state.isLinearMode}
       />
 
       <LinearToggle
